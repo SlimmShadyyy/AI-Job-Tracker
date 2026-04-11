@@ -13,9 +13,8 @@ export const parseJobDescription = async (req: Request, res: Response) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // 🔥 NEW: We add generationConfig to FORCE strict, valid JSON!
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
       }
@@ -42,8 +41,6 @@ export const parseJobDescription = async (req: Request, res: Response) => {
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
-    // We no longer need the messy string.replace() cleanup!
     const parsedData = JSON.parse(text);
     res.json(parsedData);
 
