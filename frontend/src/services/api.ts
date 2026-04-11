@@ -6,9 +6,10 @@ export interface AuthResponse {
   token: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api', 
+  baseURL: `${API_URL}/api`, 
 });
 
 API.interceptors.request.use((req) => {
@@ -19,7 +20,6 @@ API.interceptors.request.use((req) => {
   }
   return req;
 });
-
 
 export const registerUser = async (userData: { email: string; password: string }) => {
   const response = await API.post<AuthResponse>('/auth/register', userData);
@@ -34,10 +34,11 @@ export const loginUser = async (userData: { email: string; password: string }) =
 export interface ParsedJD {
   company: string;
   role: string;
-  requiredSkills: string[];
-  niceToHaveSkills: string[];
-  seniority: string;
-  location: string;
+  requiredSkills?: string[];
+  niceToHaveSkills?: string[];
+  seniority?: string;
+  location?: string;
+  resumeSuggestions?: string[]; 
 }
 
 export const parseJobDescription = async (jdText: string) => {

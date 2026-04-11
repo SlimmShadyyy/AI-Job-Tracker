@@ -6,6 +6,8 @@ import { Search, Download, Clock, Trash2, X } from 'lucide-react';
 
 const COLUMNS = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected'];
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const KanbanBoard = () => {
   const queryClient = useQueryClient();
   const [selectedApp, setSelectedApp] = useState<any>(null);
@@ -17,18 +19,19 @@ const KanbanBoard = () => {
     queryKey: ['applications'],
     queryFn: async () => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      const response = await axios.get('http://localhost:5000/api/applications', {
+      // 2. Updated the GET request
+      const response = await axios.get(`${API_URL}/api/applications`, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       return response.data;
     }
   });
 
-  
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      return axios.patch(`http://localhost:5000/api/applications/${id}/status`, 
+      // 3. Updated the PATCH request
+      return axios.patch(`${API_URL}/api/applications/${id}/status`, 
         { status }, 
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
@@ -46,11 +49,11 @@ const KanbanBoard = () => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['applications'] }),
   });
 
-  
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      return axios.delete(`http://localhost:5000/api/applications/${id}`, {
+      // 4. Updated the DELETE request
+      return axios.delete(`${API_URL}/api/applications/${id}`, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
     },
@@ -66,13 +69,11 @@ const KanbanBoard = () => {
     updateStatusMutation.mutate({ id: draggableId, status: destination.droppableId });
   };
 
-  
   const filteredApps = applications?.filter((app: any) => 
     app.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
     app.role.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  
   const stats = {
     total: filteredApps.length,
     active: filteredApps.filter((a: any) => ['Applied', 'Phone Screen', 'Interview'].includes(a.status)).length,
@@ -114,9 +115,7 @@ const KanbanBoard = () => {
 
   return (
     <div className="flex flex-col h-full">
-      
       <div className="flex flex-wrap justify-between items-end gap-4 shrink-0 mb-6">
-
         <div className="flex gap-4">
           <div className="bg-white px-5 py-3 rounded-xl border border-gray-200 shadow-sm">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total</p>
@@ -212,7 +211,6 @@ const KanbanBoard = () => {
 
             <h2 className="text-2xl font-black text-gray-900">{selectedApp.company}</h2>
             <p className="text-blue-600 font-bold text-lg mb-6">{selectedApp.role}</p>
-            
 
             <div className="overflow-y-auto pr-2 space-y-6 flex-1 min-h-0">
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
@@ -235,7 +233,8 @@ const KanbanBoard = () => {
                       setCoverLetter('');
                       try {
                         const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-                        const response = await fetch('http://localhost:5000/api/ai/stream-cover-letter', {
+                        // 5. Updated the streaming POST request
+                        const response = await fetch(`${API_URL}/api/ai/stream-cover-letter`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -267,7 +266,6 @@ const KanbanBoard = () => {
                   </button>
                 </div>
                 
-                {/* Display the streaming text */}
                 {(coverLetter || isStreaming) && (
                   <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-white p-4 rounded border border-gray-100 min-h-[100px]">
                     {coverLetter}
