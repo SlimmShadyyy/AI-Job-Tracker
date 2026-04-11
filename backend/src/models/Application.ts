@@ -12,7 +12,7 @@ const ApplicationSchema: Schema = new Schema({
   location: { type: String },
   requiredSkills: { type: [String], default: [] },
   dateApplied: { type: Date, default: Date.now },
-  resumeSuggestions: { type: [String], default: [] }
+  resumeSuggestions: [{ type: String }]
 }, { timestamps: true });
 
 export default mongoose.model('Application', ApplicationSchema);
