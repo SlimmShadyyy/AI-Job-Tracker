@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, Schema } from '@google/generative-ai';
 
 
 export const parseJobDescription = async (req: Request, res: Response) => {
@@ -12,35 +12,45 @@ export const parseJobDescription = async (req: Request, res: Response) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+
+    const responseSchema: Schema= {
+      type: SchemaType.OBJECT,
+      properties: {
+        company: { type: SchemaType.STRING, description: "The name of the company" },
+        role: { type: SchemaType.STRING, description: "The job title" },
+        location: { type: SchemaType.STRING, description: "The job location" },
+        requiredSkills: { 
+          type: SchemaType.ARRAY, 
+          items: { type: SchemaType.STRING },
+          description: "List of required skills"
+        },
+        niceToHaveSkills: { 
+          type: SchemaType.ARRAY, 
+          items: { type: SchemaType.STRING }
+        },
+        seniority: { type: SchemaType.STRING },
+        resumeSuggestions: { 
+          type: SchemaType.ARRAY, 
+          items: { type: SchemaType.STRING },
+          description: "Generate 3 actionable tips on how to tailor a resume specifically for this job."
+        }
+      },
+      required: ["company", "role", "location", "requiredSkills", "niceToHaveSkills", "seniority", "resumeSuggestions"],
+    };
     
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
+        responseSchema: responseSchema
       }
     });
 
-    const prompt = `
-      Extract details from this job description and return strictly as JSON.
-      
-      IMPORTANT: You MUST include the "resumeSuggestions" field with 3 bullet points.
-      
-      JSON Structure:
-      {
-        "company": "string",
-        "role": "string",
-        "location": "string",
-        "requiredSkills": ["string"],
-        "niceToHaveSkills": ["string"],
-        "seniority": "string",
-        "resumeSuggestions": ["string"]
-      }
-
-      Job Description: ${jdText}
-    `;
+    const prompt = `Analyze this job description and extract the requested details. Job Description: ${jdText}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
+    
     const parsedData = JSON.parse(text);
     res.json(parsedData);
 
@@ -50,8 +60,7 @@ export const parseJobDescription = async (req: Request, res: Response) => {
   }
 };
 
-
-
+// ... keep your streamCoverLetter function down here ...
 export const streamCoverLetter = async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
