@@ -12,7 +12,14 @@ export const parseJobDescription = async (req: Request, res: Response) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    
+    // 🔥 NEW: We add generationConfig to FORCE strict, valid JSON!
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
+    });
 
     const prompt = `
       Extract details from this job description and return strictly as JSON.
@@ -34,11 +41,9 @@ export const parseJobDescription = async (req: Request, res: Response) => {
     `;
 
     const result = await model.generateContent(prompt);
-    let text = result.response.text();
+    const text = result.response.text();
     
-    // Clean up the markdown formatting Gemini sometimes adds
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+    // We no longer need the messy string.replace() cleanup!
     const parsedData = JSON.parse(text);
     res.json(parsedData);
 
@@ -47,6 +52,8 @@ export const parseJobDescription = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error parsing job description with AI." });
   }
 };
+
+
 
 export const streamCoverLetter = async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
