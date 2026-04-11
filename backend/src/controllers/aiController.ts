@@ -60,7 +60,6 @@ export const parseJobDescription = async (req: Request, res: Response) => {
   }
 };
 
-// ... keep your streamCoverLetter function down here ...
 export const streamCoverLetter = async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
