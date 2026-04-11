@@ -32,7 +32,7 @@ export const parseJobDescription = async (req: Request, res: Response) => {
         resumeSuggestions: { 
           type: SchemaType.ARRAY, 
           items: { type: SchemaType.STRING },
-          description: "Generate 3 actionable tips on how to tailor a resume specifically for this job."
+          description: "Generate 3-5 high-impact resume bullet points specifically for this role. Use strong action verbs and include metrics/technologies mentioned in the JD. Avoid generic phrases."
         }
       },
       required: ["company", "role", "location", "requiredSkills", "niceToHaveSkills", "seniority", "resumeSuggestions"],

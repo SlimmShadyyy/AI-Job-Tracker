@@ -1,11 +1,10 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Search, Download, Clock, Trash2, X } from 'lucide-react';
+import { Search, Download, Clock, Trash2, X, Copy, Sparkles } from 'lucide-react';
 
 const COLUMNS = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected'];
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const KanbanBoard = () => {
@@ -14,12 +13,18 @@ const KanbanBoard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [coverLetter, setCoverLetter] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   const { data: applications, isLoading, error } = useQuery({
     queryKey: ['applications'],
     queryFn: async () => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      // 2. Updated the GET request
       const response = await axios.get(`${API_URL}/api/applications`, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
@@ -30,7 +35,6 @@ const KanbanBoard = () => {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      // 3. Updated the PATCH request
       return axios.patch(`${API_URL}/api/applications/${id}/status`, 
         { status }, 
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
@@ -52,7 +56,6 @@ const KanbanBoard = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      // 4. Updated the DELETE request
       return axios.delete(`${API_URL}/api/applications/${id}`, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
@@ -167,7 +170,10 @@ const KanbanBoard = () => {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              onClick={() => setSelectedApp(item)}
+                              onClick={() => {
+                                setSelectedApp(item);
+                                setCoverLetter(item.coverLetter || '');
+                              }}
                               className={`p-4 bg-white rounded-lg shadow-sm border transition cursor-pointer relative ${
                                 isOverdue(item.createdAt, item.status) 
                                   ? 'border-red-300 hover:border-red-500 bg-red-50/30' 
@@ -213,15 +219,38 @@ const KanbanBoard = () => {
             <p className="text-blue-600 font-bold text-lg mb-6">{selectedApp.role}</p>
 
             <div className="overflow-y-auto pr-2 space-y-6 flex-1 min-h-0">
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <h3 className="font-bold text-xs text-blue-800 uppercase tracking-widest mb-3">AI Resume Suggestions</h3>
-                  <ul className="list-disc ml-5 text-sm text-blue-900 space-y-2">
-                      {selectedApp.resumeSuggestions?.length > 0 ? (
-                          selectedApp.resumeSuggestions.map((s: string, i: number) => <li key={i}>{s}</li>)
-                      ) : (
-                          <li className="list-none ml-[-20px] italic text-gray-500">No suggestions available yet.</li>
-                      )}
-                  </ul>
+              {/* UPDATED RESUME SUGGESTIONS SECTION */}
+              <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-xs text-blue-800 uppercase tracking-widest">
+                    Tailored Resume Bullet Points
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  {selectedApp.resumeSuggestions?.length > 0 ? (
+                    selectedApp.resumeSuggestions.map((suggestion: string, i: number) => (
+                      <div key={i} className="group relative bg-white p-3 rounded-xl border border-blue-100 shadow-sm hover:border-blue-300 transition-all">
+                        <p className="text-sm text-gray-700 leading-relaxed pr-12">
+                          {suggestion}
+                        </p>
+                        <button
+                          onClick={() => handleCopy(suggestion, i)}
+                          className="absolute top-2 right-2 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          {copiedIndex === i ? (
+                            <span className="text-[10px] font-bold text-green-600">COPIED!</span>
+                          ) : (
+                            <Copy className="w-4 h-4 text-blue-400" />
+                          )}
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="italic text-gray-500 text-sm">No suggestions available yet.</p>
+                  )}
+                </div>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
@@ -231,9 +260,9 @@ const KanbanBoard = () => {
                     onClick={async () => {
                       setIsStreaming(true);
                       setCoverLetter('');
+                      let finalLetter = '';
                       try {
                         const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-                        // 5. Updated the streaming POST request
                         const response = await fetch(`${API_URL}/api/ai/stream-cover-letter`, {
                           method: 'POST',
                           headers: {
@@ -248,9 +277,20 @@ const KanbanBoard = () => {
 
                         while (true) {
                           const { done, value } = await reader!.read();
-                          if (done) break;
+                          if (done) {
+                            // AUTO-SAVE LOGIC
+                            try {
+                              await axios.patch(`${API_URL}/api/applications/${selectedApp._id}/cover-letter`, 
+                                { coverLetter: finalLetter },
+                                { headers: { Authorization: `Bearer ${userInfo.token}` } }
+                              );
+                              queryClient.invalidateQueries({ queryKey: ['applications'] });
+                            } catch (e) { console.error("Auto-save failed"); }
+                            break;
+                          }
 
                           const chunk = decoder.decode(value, { stream: true });
+                          finalLetter += chunk;
                           setCoverLetter((prev) => prev + chunk);
                         }
                       } catch (err) {
