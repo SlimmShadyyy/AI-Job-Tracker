@@ -51,7 +51,7 @@ const AddApplicationModal = ({ isOpen, onClose }: ModalProps) => {
         role: data.role || '',
         location: data.location || '',
         requiredSkills: data.requiredSkills ? data.requiredSkills.join(', ') : '',
-        resumeSuggestions: [] as string[],
+        resumeSuggestions: data.resumeSuggestions || [],
       });
     } catch (error) {
       alert("AI Parsing failed. Check your API key.");
